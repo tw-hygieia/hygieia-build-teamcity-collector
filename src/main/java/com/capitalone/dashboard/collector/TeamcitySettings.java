@@ -12,7 +12,7 @@ import java.util.List;
  * Bean to hold settings specific to the Teamcity collector.
  */
 @Component
-@ConfigurationProperties(prefix = "teamcity")
+@ConfigurationProperties(prefix = "Teamcity")
 public class TeamcitySettings {
 
 	

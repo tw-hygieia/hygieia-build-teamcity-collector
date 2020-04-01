@@ -14,9 +14,9 @@ public class TeamcityProject extends JobCollectorItem {
         	return false;
         }
 
-        TeamcityProject hudsonJob = (TeamcityProject) o;
+        TeamcityProject teamcityJob = (TeamcityProject) o;
 
-        return getJobUrl().equals(hudsonJob.getJobUrl()) && getJobName().equals(hudsonJob.getJobName());
+        return getJobUrl().equals(teamcityJob.getJobUrl()) && getJobName().equals(teamcityJob.getJobName());
     }
 
     @Override
