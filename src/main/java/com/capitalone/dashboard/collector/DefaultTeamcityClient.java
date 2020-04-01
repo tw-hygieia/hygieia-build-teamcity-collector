@@ -71,18 +71,20 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 JSONParser parser = new JSONParser();
                 try {
                     JSONObject object = (JSONObject) parser.parse(returnJSON);
-                    JSONArray jobs = getJsonArray(object, "project");
-                    if (jobs.size() == 0) {
+                    JSONObject buildTypesObject = (JSONObject) object.get("buildTypes");
+                    JSONArray buildTypes = getJsonArray(buildTypesObject, "buildType");
+                    if (buildTypes.size() == 0) {
                         break;
                     }
-                    for (Object job : jobs) {
-                        JSONObject jsonJob = (JSONObject) job;
+                    for (Object buildType : buildTypes) {
+                        JSONObject jsonBuildType = (JSONObject) buildType;
 
-                        final String projectName = getString(jsonJob, "name");
-                        final String projectURL = String.format("%s/%s/id:%s", instanceUrl, PROJECT_API_URL_SUFFIX, projectID);
+                        final String projectName = String.format("%s-%s",
+                                getString(object, "name"), getString(jsonBuildType, "name"));
+                        final String projectURL = getString(jsonBuildType, "webUrl");
+                        final String buildTypeID = getString(jsonBuildType, "id");
                         LOG.debug("Process projectName " + projectName + " projectURL " + projectURL);
-
-                        getProjectDetails(projectID, projectName, projectURL, instanceUrl, result);
+                        getProjectDetails(projectID, buildTypeID, projectName, projectURL, instanceUrl, result);
                     }
                 } catch (ParseException e) {
                     LOG.error("Parsing jobs details on instance: " + instanceUrl, e);
@@ -98,7 +100,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
     }
 
     @SuppressWarnings({"PMD.NPathComplexity", "PMD.ExcessiveMethodLength", "PMD.AvoidBranchingStatementAsLastInLoop", "PMD.EmptyIfStmt"})
-    private void getProjectDetails(String projectID, String projectName, String projectURL, String instanceUrl,
+    private void getProjectDetails(String projectID, String buildTypeID, String projectName, String projectURL, String instanceUrl,
                                    Map<TeamcityProject, Map<jobData, Set<BaseModel>>> result) throws URISyntaxException, ParseException {
         LOG.debug("getProjectDetails: projectName " + projectName + " projectURL: " + projectURL);
 
@@ -110,7 +112,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
         teamcityProject.setJobUrl(projectURL);
         teamcityProject.getOptions().put("projectId", projectID);
 
-        Set<BaseModel> builds = getBuildDetailsForTeamcityProject(projectID, instanceUrl);
+        Set<BaseModel> builds = getBuildDetailsForTeamcityProject(projectID, buildTypeID, instanceUrl);
 
         jobDataMap.put(jobData.BUILD, builds);
 
@@ -118,12 +120,12 @@ public class DefaultTeamcityClient implements TeamcityClient {
     }
 
 
-    private Set<BaseModel> getBuildDetailsForTeamcityProjectPaginated(String projectID, String instanceUrl, int startCount, int endCount) throws URISyntaxException, ParseException {
+    private Set<BaseModel> getBuildDetailsForTeamcityProjectPaginated(String projectID, String buildTypeID, String instanceUrl, int startCount, int endCount) throws URISyntaxException, ParseException {
         Set<BaseModel> builds = new LinkedHashSet<>();
         try {
             String allBuildsUrl = joinURL(instanceUrl, new String[]{BUILD_DETAILS_URL_SUFFIX});
             LOG.info("Fetching builds for project {}", allBuildsUrl);
-            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=project:%s,count:%d,start:%d", projectID, endCount, startCount)});
+            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=project:%s,buildType:%S,count:%d,start:%d", projectID, buildTypeID, endCount, startCount)});
             ResponseEntity<String> responseEntity = makeRestCall(url);
             String returnJSON = responseEntity.getBody();
             if (StringUtils.isEmpty(returnJSON)) {
@@ -157,12 +159,12 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
     }
 
-    private Set<BaseModel> getBuildDetailsForTeamcityProject(String projectID, String instanceUrl) throws URISyntaxException, ParseException {
+    private Set<BaseModel> getBuildDetailsForTeamcityProject(String projectID, String buildTypeID, String instanceUrl) throws URISyntaxException, ParseException {
         Set<BaseModel> allBuilds = new LinkedHashSet<>();
         int startCount = 0;
         int endCount = 100;
         while (true) {
-            Set<BaseModel> builds = getBuildDetailsForTeamcityProjectPaginated(projectID, instanceUrl, startCount, endCount);
+            Set<BaseModel> builds = getBuildDetailsForTeamcityProjectPaginated(projectID, buildTypeID, instanceUrl, startCount, endCount);
             if (builds.isEmpty()) {
                 break;
             }
