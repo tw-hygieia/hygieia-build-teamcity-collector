@@ -177,8 +177,9 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
     @Override
     public Build getBuildDetails(String buildUrl, String instanceUrl) {
+        String formattedBuildUrl = formatBuildUrl(buildUrl);
         try {
-            String url = rebuildJobUrl(buildUrl, instanceUrl);
+            String url = rebuildJobUrl(formattedBuildUrl, instanceUrl);
             ResponseEntity<String> result = makeRestCall(url);
             String resultJSON = result.getBody();
             if (StringUtils.isEmpty(resultJSON)) {
@@ -203,6 +204,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
                     build.setNumber(buildJson.get("number").toString());
                     build.setBuildUrl(buildUrl);
+                    build.setBuildUrl(formattedBuildUrl);
                     build.setTimestamp(System.currentTimeMillis());
                     build.setEndTime(build.getStartTime() + build.getDuration());
                     build.setBuildStatus(getBuildStatus(buildJson));
@@ -225,20 +227,24 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 }
 
             } catch (ParseException e) {
-                LOG.error("Parsing build: " + buildUrl, e);
+                LOG.error("Parsing build: " + formattedBuildUrl, e);
             }
         } catch (RestClientException rce) {
-            LOG.error("Client exception loading build details: " + rce.getMessage() + ". URL =" + buildUrl);
+            LOG.error("Client exception loading build details: " + rce.getMessage() + ". URL =" + formattedBuildUrl);
         } catch (MalformedURLException mfe) {
-            LOG.error("Malformed url for loading build details" + mfe.getMessage() + ". URL =" + buildUrl);
+            LOG.error("Malformed url for loading build details" + mfe.getMessage() + ". URL =" + formattedBuildUrl);
         } catch (URISyntaxException use) {
-            LOG.error("Uri syntax exception for loading build details" + use.getMessage() + ". URL =" + buildUrl);
+            LOG.error("Uri syntax exception for loading build details" + use.getMessage() + ". URL =" + formattedBuildUrl);
         } catch (RuntimeException re) {
-            LOG.error("Unknown error in getting build details. URL=" + buildUrl, re);
+            LOG.error("Unknown error in getting build details. URL=" + formattedBuildUrl, re);
         } catch (UnsupportedEncodingException unse) {
-            LOG.error("Unsupported Encoding Exception in getting build details. URL=" + buildUrl, unse);
+            LOG.error("Unsupported Encoding Exception in getting build details. URL=" + formattedBuildUrl, unse);
         }
         return null;
+    }
+
+    private String formatBuildUrl(String buildUrl) {
+        return buildUrl.split("\\?")[0] + "/" + buildUrl.split("=")[1];
     }
 
     private long getTimeInMillis(String startDate) {
