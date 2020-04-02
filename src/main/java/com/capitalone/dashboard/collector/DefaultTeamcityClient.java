@@ -145,10 +145,9 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 JSONObject jsonBuild = (JSONObject) build;
                 // A basic Build object. This will be fleshed out later if this is a new Build.
                 String buildID = jsonBuild.get("id").toString();
-                String buildNumber = jsonBuild.get("number").toString();
-                LOG.debug(" buildNumber: " + buildNumber);
+                LOG.debug(" buildNumber: " + buildID);
                 Build teamcityBuild = new Build();
-                teamcityBuild.setNumber(buildNumber);
+                teamcityBuild.setNumber(buildID);
                 String buildURL = String.format("%s?locator=id:%s", allBuildsUrl, buildID); //String buildURL = getString(jsonBuild, "webUrl");
                 LOG.debug(" Adding Build: " + buildURL);
                 teamcityBuild.setBuildUrl(buildURL);
