@@ -30,7 +30,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
     private final TeamcityClient teamcityClient;
     private final TeamcitySettings teamcitySettings;
     private final ComponentRepository dbComponentRepository;
-	private final ConfigurationRepository configurationRepository;
+    private final ConfigurationRepository configurationRepository;
 
     @Autowired
     public TeamcityCollectorTask(TaskScheduler taskScheduler,
@@ -48,27 +48,27 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
         this.teamcityClient = teamcityClient;
         this.teamcitySettings = teamcitySettings;
         this.dbComponentRepository = dbComponentRepository;
-		this.configurationRepository = configurationRepository;
+        this.configurationRepository = configurationRepository;
     }
 
     @Override
     public TeamcityCollector getCollector() {
-    	Configuration config = configurationRepository.findByCollectorName("Teamcity");
+        Configuration config = configurationRepository.findByCollectorName("Teamcity");
         // Only use Admin Page Jenkins server configuration when available
         // otherwise use properties file Jenkins server configuration
-        if (config != null ) {
-			config.decryptOrEncrptInfo();
-			// To clear the username and password from existing run and
-			// pick the latest
+        if (config != null) {
+            config.decryptOrEncrptInfo();
+            // To clear the username and password from existing run and
+            // pick the latest
             teamcitySettings.getUsernames().clear();
             teamcitySettings.getServers().clear();
             teamcitySettings.getApiKeys().clear();
-			for (Map<String, String> TeamcityServer : config.getInfo()) {
-				teamcitySettings.getServers().add(TeamcityServer.get("url"));
-				teamcitySettings.getUsernames().add(TeamcityServer.get("userName"));
-				teamcitySettings.getApiKeys().add(TeamcityServer.get("password"));
-			}
-		}
+            for (Map<String, String> TeamcityServer : config.getInfo()) {
+                teamcitySettings.getServers().add(TeamcityServer.get("url"));
+                teamcitySettings.getUsernames().add(TeamcityServer.get("userName"));
+                teamcitySettings.getApiKeys().add(TeamcityServer.get("password"));
+            }
+        }
         return TeamcityCollector.prototype(teamcitySettings.getServers(), teamcitySettings.getNiceNames(),
                 teamcitySettings.getEnvironments());
     }
@@ -192,7 +192,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
      * Iterates over the enabled build jobs and adds new builds to the database.
      *
      * @param enabledJobs list of enabled {@link TeamcityProject}s
-     * @param dataByJob maps a {@link TeamcityProject} to a map of data with {@link Build}s.
+     * @param dataByJob   maps a {@link TeamcityProject} to a map of data with {@link Build}s.
      */
     private void addNewBuilds(List<TeamcityProject> enabledJobs,
                               Map<TeamcityProject, Map<TeamcityClient.jobData, Set<BaseModel>>> dataByJob) {
@@ -211,10 +211,9 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
 
             ArrayList<BaseModel> builds = Lists.newArrayList(nullSafe(buildsSet));
 
-            builds.sort(Comparator.comparingInt(b -> Integer.valueOf(((Build) b).getNumber())));
             for (BaseModel buildSummary : builds) {
-                if (isNewBuild(job, (Build)buildSummary)) {
-                    Build build = teamcityClient.getBuildDetails(((Build)buildSummary)
+                if (isNewBuild(job, (Build) buildSummary)) {
+                    Build build = teamcityClient.getBuildDetails(((Build) buildSummary)
                             .getBuildUrl(), job.getInstanceUrl());
                     job.setLastUpdated(System.currentTimeMillis());
                     teamcityJobRepository.save(job);
@@ -230,7 +229,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
     }
 
     private void addNewConfigs(List<TeamcityProject> enabledJobs,
-                              Map<TeamcityProject, Map<TeamcityClient.jobData, Set<BaseModel>>> dataByJob) {
+                               Map<TeamcityProject, Map<TeamcityClient.jobData, Set<BaseModel>>> dataByJob) {
         long start = System.currentTimeMillis();
         int count = 0;
 
@@ -249,11 +248,11 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
             configs.sort(Comparator.comparing(b -> new Date(((CollectorItemConfigHistory) b).getTimestamp())));
 
             for (BaseModel config : configs) {
-                if (config != null && isNewConfig(job, (CollectorItemConfigHistory)config)) {
+                if (config != null && isNewConfig(job, (CollectorItemConfigHistory) config)) {
                     job.setLastUpdated(System.currentTimeMillis());
                     teamcityJobRepository.save(job);
-                    ((CollectorItemConfigHistory)config).setCollectorItemId(job.getId());
-                    configRepository.save((CollectorItemConfigHistory)config);
+                    ((CollectorItemConfigHistory) config).setCollectorItemId(job.getId());
+                    configRepository.save((CollectorItemConfigHistory) config);
                     count++;
                 }
             }
@@ -363,6 +362,6 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
     }
 
     private boolean isNewConfig(TeamcityProject job, CollectorItemConfigHistory config) {
-        return configRepository.findByCollectorItemIdAndTimestamp(job.getId(),config.getTimestamp()) == null;
+        return configRepository.findByCollectorItemIdAndTimestamp(job.getId(), config.getTimestamp()) == null;
     }
 }

@@ -83,11 +83,9 @@ public class DefaultTeamcityClient implements TeamcityClient {
                         JSONObject jsonBuildType = (JSONObject) buildType;
                         final String buildTypeID = getString(jsonBuildType, "id");
                         if (buildTypeID.equals("Deployment")) continue;
-                        final String projectName = String.format("%s-%s",
-                                getString(object, "name"), getString(jsonBuildType, "name"));
                         final String projectURL = getString(jsonBuildType, "webUrl");
-                        LOG.debug("Process projectName " + projectName + " projectURL " + projectURL);
-                        getProjectDetails(projectID, buildTypeID, projectName, projectURL, instanceUrl, result);
+                        LOG.debug("Process projectName " + buildTypeID + " projectURL " + projectURL);
+                        getProjectDetails(projectID, buildTypeID, buildTypeID, projectURL, instanceUrl, result);
                     }
                 } catch (ParseException e) {
                     LOG.error("Parsing jobs details on instance: " + instanceUrl, e);
@@ -203,7 +201,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     build.setEndTime(endTime);
                     build.setDuration(duration);
 
-                    build.setNumber(buildJson.get("id").toString());
+                    build.setNumber(buildJson.get("number").toString());
                     build.setBuildUrl(buildUrl);
                     build.setTimestamp(System.currentTimeMillis());
                     build.setEndTime(build.getStartTime() + build.getDuration());
