@@ -81,11 +81,11 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     }
                     for (Object buildType : buildTypes) {
                         JSONObject jsonBuildType = (JSONObject) buildType;
-
+                        final String buildTypeID = getString(jsonBuildType, "id");
+                        if (buildTypeID.equals("Deployment")) continue;
                         final String projectName = String.format("%s-%s",
                                 getString(object, "name"), getString(jsonBuildType, "name"));
                         final String projectURL = getString(jsonBuildType, "webUrl");
-                        final String buildTypeID = getString(jsonBuildType, "id");
                         LOG.debug("Process projectName " + projectName + " projectURL " + projectURL);
                         getProjectDetails(projectID, buildTypeID, projectName, projectURL, instanceUrl, result);
                     }
@@ -128,7 +128,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
         try {
             String allBuildsUrl = joinURL(instanceUrl, new String[]{BUILD_DETAILS_URL_SUFFIX});
             LOG.info("Fetching builds for project {}", allBuildsUrl);
-            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=project:%s,count:%d,start:%d", projectID,buildTypeID, buildsCount, startCount)});
+            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=project:%s,buildType:%s,count:%d,start:%d", projectID, buildTypeID, buildsCount, startCount)});
             ResponseEntity<String> responseEntity = makeRestCall(url);
             String returnJSON = responseEntity.getBody();
             if (StringUtils.isEmpty(returnJSON)) {
@@ -173,7 +173,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
             }
             allBuilds.addAll(builds);
             startCount += 100;
-//            endCount = endCount + 100;
         }
         return allBuilds;
     }
@@ -247,12 +246,12 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
     private long getTimeInMillis(String startDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
-        String dateWithoutOffset = startDate.substring(0,15);
+        String dateWithoutOffset = startDate.substring(0, 15);
         String offset = startDate.substring(15);
         LocalDateTime formattedDateTime = LocalDateTime.parse(dateWithoutOffset, formatter);
-        String formattedOffset = offset.substring(0,3) + ":" + offset.substring(3);
+        String formattedOffset = offset.substring(0, 3) + ":" + offset.substring(3);
         ZoneOffset zoneOffset = ZoneOffset.of(formattedOffset);
-        return formattedDateTime.atOffset(zoneOffset).toEpochSecond()*1000;
+        return formattedDateTime.atOffset(zoneOffset).toEpochSecond() * 1000;
     }
 
     //This method will rebuild the API endpoint because the buildUrl obtained via Jenkins API
