@@ -82,7 +82,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     for (Object buildType : buildTypes) {
                         JSONObject jsonBuildType = (JSONObject) buildType;
                         final String buildTypeID = getString(jsonBuildType, "id");
-                        if (buildTypeID.equals("Deployment")) continue;
+                        if (buildTypeID.contains("DeployPipeline")) continue;
                         final String projectURL = getString(jsonBuildType, "webUrl");
                         LOG.debug("Process projectName " + buildTypeID + " projectURL " + projectURL);
                         getProjectDetails(projectID, buildTypeID, buildTypeID, projectURL, instanceUrl, result);
