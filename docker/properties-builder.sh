@@ -138,7 +138,7 @@ if [ "$TEAMCITY_OP_CENTER" != "" ]
 then
 
 	cat >> $PROP_FILE <<EOF
-#If using username/token for api authentication (required for Cloudbees Jenkins Ops Center) see sample
+#If using username/token for api authentication (required for Cloudbees Teamcity Ops Center) see sample
 #teamcity.servers[${max}]=${TEAMCITY_OP_CENTER:-http://username:token@teamcity.company.com}
 teamcity.servers[${max}]=${TEAMCITY_OP_CENTER}
 EOF

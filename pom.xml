@@ -24,10 +24,10 @@
   </organization>
 
   <scm>
-    <connection>scm:git:https://github.com/Hygieia/hygieia-build-jenkins-collector.git</connection>
-    <developerConnection>scm:git:https://github.com/Hygieia/hygieia-build-jenkins-collector.git
+    <connection>scm:git:https://github.com/tw-hygieia/hygieia-build-teamcity-collector.git</connection>
+    <developerConnection>scm:git:https://github.com/tw-hygieia/hygieia-build-teamcity-collector.git
     </developerConnection>
-    <url>https://github.com/Hygieia/hygieia-build-jenkins-collector</url>
+    <url>https://github.com/tw-hygieia/hygieia-build-teamcity-collector</url>
   </scm>
 
   <distributionManagement>
@@ -42,7 +42,7 @@
     <site>
       <id>c1.maven.plugins.website</id>
       <name>Capital One Maven Plugins Site</name>
-      <url>scm:git:https://${github.username}@github.com/Hygieia/hygieia-build-jenkins-collector</url>
+      <url>scm:git:https://${github.username}@github.com/tw-hygieia/hygieia-build-teamcity-collector</url>
     </site>
   </distributionManagement>
 
@@ -74,7 +74,7 @@
     <maven.site.plugin.version>3.7.1</maven.site.plugin.version>
     <mockito.all.version>1.10.19</mockito.all.version>
     <org.joda.joda-convert.version>1.8.1</org.joda.joda-convert.version>
-    <site.publish.url>https://github.com/Hygieia/hygieia-build-jenkins-collector</site.publish.url>
+    <site.publish.url>https://github.com/tw-hygieia/hygieia-build-teamcity-collector</site.publish.url>
     <site.publish.checkout.directory>site-content</site.publish.checkout.directory>
     <spotbugs.plugin.version>3.1.11</spotbugs.plugin.version>
     <svnkit.version>1.8.7</svnkit.version>
@@ -82,7 +82,7 @@
 
   <issueManagement>
     <system>github</system>
-    <url>https://github.com/Hygieia/hygieia-build-jenkins-collector/issues</url>
+    <url>https://github.com/tw-hygieia/hygieia-build-teamcity-collector/issues</url>
   </issueManagement>
 
   <developers>
@@ -314,7 +314,7 @@
         <artifactId>docker-maven-plugin</artifactId>
         <configuration>
           <skipDockerBuild>false</skipDockerBuild>
-          <imageName>hygieia-build-jenkins-collector</imageName>
+          <imageName>hygieia-build-teamcity-collector</imageName>
           <dockerDirectory>${project.basedir}/docker</dockerDirectory>
           <resources>
             <resource>
@@ -552,7 +552,7 @@
           <template>release-notes.vm</template>
           <templateDirectory>src/changes</templateDirectory>
           <issueLinkTemplatePerSystem>
-            <github>http://github.com/Hygieia/hygieia-build-jenkins-collector/issues/%ISSUE%</github>
+            <github>http://github.com/tw-hygieia/hygieia-build-teamcity-collector/issues/%ISSUE%</github>
           </issueLinkTemplatePerSystem>
         </configuration>
         <reportSets>

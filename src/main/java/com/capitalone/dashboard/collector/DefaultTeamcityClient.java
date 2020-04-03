@@ -82,7 +82,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     for (Object buildType : buildTypes) {
                         JSONObject jsonBuildType = (JSONObject) buildType;
                         final String buildTypeID = getString(jsonBuildType, "id");
-                        if (buildTypeID.contains("DeployPipeline")) continue;
                         final String projectURL = getString(jsonBuildType, "webUrl");
                         LOG.debug("Process projectName " + buildTypeID + " projectURL " + projectURL);
                         getProjectDetails(projectID, buildTypeID, buildTypeID, projectURL, instanceUrl, result);
@@ -214,7 +213,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     build.getCodeRepos().addAll(getGitRepoBranch(buildJson));
 
 
-                    // Need to handle duplicate changesets bug in Pipeline jobs (https://issues.jenkins-ci.org/browse/JENKINS-40352)
+                    // Need to handle duplicate changesets bug in Pipeline jobs
                     Set<String> commitIds = new HashSet<>();
                     // This is empty for git
                     Set<String> revisions = new HashSet<>();
@@ -257,7 +256,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
         return formattedDateTime.atOffset(zoneOffset).toEpochSecond() * 1000;
     }
 
-    //This method will rebuild the API endpoint because the buildUrl obtained via Jenkins API
+    //This method will rebuild the API endpoint because the buildUrl obtained via Teamcity API
     //does not save the auth user info and we need to add it back.
     public static String rebuildJobUrl(String build, String server) throws URISyntaxException, MalformedURLException, UnsupportedEncodingException {
         URL instanceUrl = new URL(server);
@@ -525,7 +524,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 }
                 if (!exactMatchFound) {
                     LOG.warn("Credentials for the following url was not found. This could happen if the domain/subdomain/IP address "
-                            + "in the build url returned by Jenkins and the Jenkins instance url in your Hygieia configuration do not match: "
+                            + "in the build url returned by Teamcity and the Teamcity instance url in your Hygieia configuration do not match: "
                             + "\"" + sUrl + "\"");
                 }
             }

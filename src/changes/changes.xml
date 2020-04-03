@@ -32,7 +32,7 @@ The <action> type attribute can be add,update,fix,remove.
 
 <document>
     <properties>
-        <title>Hygieia Jenkins Collector Changes</title>
+        <title>Hygieia Teamcity Collector Changes</title>
     </properties>
     <body>
 

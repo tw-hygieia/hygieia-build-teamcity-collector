@@ -54,8 +54,8 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
     @Override
     public TeamcityCollector getCollector() {
         Configuration config = configurationRepository.findByCollectorName("Teamcity");
-        // Only use Admin Page Jenkins server configuration when available
-        // otherwise use properties file Jenkins server configuration
+        // Only use Admin Page Teamcity server configuration when available
+        // otherwise use properties file Teamcity server configuration
         if (config != null) {
             config.decryptOrEncrptInfo();
             // To clear the username and password from existing run and
@@ -117,7 +117,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
     }
 
     /**
-     * Clean up unused hudson/jenkins collector items
+     * Clean up unused hudson/teamcity collector items
      *
      * @param collector    the {@link TeamcityCollector}
      * @param existingJobs
