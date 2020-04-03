@@ -176,6 +176,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
     @Override
     public Build getBuildDetails(String buildUrl, String instanceUrl) {
+        LOG.debug("getting build details");
         String formattedBuildUrl = formatBuildUrl(buildUrl);
         try {
             String url = rebuildJobUrl(formattedBuildUrl, instanceUrl);
@@ -194,6 +195,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 if (buildStatus != "finished") {
                     Build build = new Build();
 
+
                     long startTime = getTimeInMillis(buildJson.get("startDate").toString());
                     long endTime = getTimeInMillis(buildJson.get("finishDate").toString());
                     long duration = endTime - startTime;
@@ -201,7 +203,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     build.setEndTime(endTime);
                     build.setDuration(duration);
 
-                    build.setNumber(buildJson.get("number").toString());
+                    build.setNumber(buildJson.get("id").toString());
                     build.setBuildUrl(buildUrl);
                     build.setBuildUrl(formattedBuildUrl);
                     build.setTimestamp(System.currentTimeMillis());
