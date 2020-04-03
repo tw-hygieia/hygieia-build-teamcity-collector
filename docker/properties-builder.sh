@@ -82,12 +82,17 @@ teamcity.projectIds=${TEAMCITY_PROJECT_IDS}
 teamcity.folderDepth=${TEAMCITY_FOLDER_DEPTH:-10}
 
 #Teamcity server (required) - Can provide multiple
-#teamcity.servers[0]=http://teamcity.company.com
+teamcity.servers[0]=${TEAMCITY_SERVER}
 #teamcity.niceNames[0]=[YourTeamcity]
 #teamcity.environments[0]=[DEV,QA,INT,PERF,PROD]
 #Another option: If using same username/password Teamcity auth - set username/apiKey to use HTTP Basic Auth (blank=no auth)
-#teamcity.usernames[0]=user
-#teamcity.apiKeys[0]=12345
+teamcity.usernames[0]=${ENTERPRISE_USERNAME}
+teamcity.apiKeys[0]={TEAMCITY_API_KEY}
+
+# Search criteria enabled via properties (max search criteria = 2)
+teamcity.searchFields[0]= options.jobName
+teamcity.searchFields[1]= niceName
+
 
 EOF
 
