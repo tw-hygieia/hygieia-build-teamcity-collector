@@ -48,6 +48,8 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
     private static final String BUILD_DETAILS_URL_SUFFIX = "app/rest/builds";
 
+    private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "app/rest/buildTypes";
+
     private static final String DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss";
 
     @Autowired
@@ -82,6 +84,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     for (Object buildType : buildTypes) {
                         JSONObject jsonBuildType = (JSONObject) buildType;
                         final String buildTypeID = getString(jsonBuildType, "id");
+                        if (isDeploymentBuildType(buildTypeID, instanceUrl)) continue;
                         final String projectURL = getString(jsonBuildType, "webUrl");
                         LOG.debug("Process projectName " + buildTypeID + " projectURL " + projectURL);
                         getProjectDetails(projectID, buildTypeID, buildTypeID, projectURL, instanceUrl, result);
@@ -98,6 +101,40 @@ public class DefaultTeamcityClient implements TeamcityClient {
         }
         return result;
     }
+
+    private Boolean isDeploymentBuildType(String buildTypeID, String instanceUrl) throws URISyntaxException, ParseException {
+        try {
+            String buildTypesUrl = joinURL(instanceUrl, new String[]{String.format("%s/id:%s", BUILD_TYPE_DETAILS_URL_SUFFIX, buildTypeID)});
+            LOG.info("Fetching build types details for {}", buildTypesUrl);
+            ResponseEntity<String> responseEntity = makeRestCall(buildTypesUrl);
+            String returnJSON = responseEntity.getBody();
+            if (StringUtils.isEmpty(returnJSON)) {
+                return false;
+            }
+            JSONParser parser = new JSONParser();
+            JSONObject object = (JSONObject) parser.parse(returnJSON);
+
+            if (object.isEmpty()) {
+                return false;
+            }
+            JSONObject buildTypesObject = (JSONObject) object.get("settings");
+            JSONArray properties = getJsonArray(buildTypesObject, "property");
+            if (properties.size() == 0) {
+                return false;
+            }
+            for (Object property : properties) {
+                JSONObject jsonProperty = (JSONObject) property;
+                String propertyName = jsonProperty.get("name").toString();
+                if (!propertyName.equals("buildConfigurationType")) continue;
+                String propertyValue = jsonProperty.get("value").toString();
+                return propertyValue.equals("DEPLOYMENT");
+            }
+        } catch (HttpClientErrorException hce) {
+            LOG.error("http client exception loading build details", hce);
+        }
+        return false;
+    }
+
 
     @SuppressWarnings({"PMD.NPathComplexity", "PMD.ExcessiveMethodLength", "PMD.AvoidBranchingStatementAsLastInLoop", "PMD.EmptyIfStmt"})
     private void getProjectDetails(String projectID, String buildTypeID, String projectName, String projectURL, String instanceUrl,
@@ -190,7 +227,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
             try {
                 JSONObject buildJson = (JSONObject) parser.parse(resultJSON);
                 String buildStatus = buildJson.get("state").toString();
-//                Boolean building = (Boolean) buildJson.get("build");
                 // Ignore jobs that are building
                 if (buildStatus != "finished") {
                     Build build = new Build();
