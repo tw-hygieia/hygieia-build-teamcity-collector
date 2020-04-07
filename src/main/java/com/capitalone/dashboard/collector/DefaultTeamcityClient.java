@@ -534,22 +534,26 @@ public class DefaultTeamcityClient implements TeamcityClient {
     protected ResponseEntity<String> makeRestCall(String sUrl) throws URISyntaxException {
         LOG.debug("Enter makeRestCall " + sUrl);
         URI thisuri = URI.create(sUrl);
-        String userAccessToken = this.settings.getAccessToken();
+        String userInfo = thisuri.getUserInfo();
 
         //get userinfo from URI or settings (in spring properties)
-        if (StringUtils.isEmpty(userAccessToken)) {
+        if (StringUtils.isEmpty(userInfo)) {
             List<String> servers = this.settings.getServers();
             List<String> usernames = this.settings.getUsernames();
             List<String> apiKeys = this.settings.getApiKeys();
             if (CollectionUtils.isNotEmpty(servers) && CollectionUtils.isNotEmpty(usernames) && CollectionUtils.isNotEmpty(apiKeys)) {
                 boolean exactMatchFound = false;
-                for (String server : servers) {
-                    if ((server != null)) {
+                for (int i = 0; i < servers.size(); i++) {
+                    if ((servers.get(i) != null)) {
                         String domain1 = getDomain(sUrl);
-                        String domain2 = getDomain(server);
+                        String domain2 = getDomain(servers.get(i));
                         if (StringUtils.isNotEmpty(domain1) && StringUtils.isNotEmpty(domain2) && Objects.equals(domain1, domain2)
-                                && getPort(sUrl) == getPort(server)) {
+                                && getPort(sUrl) == getPort(servers.get(i))) {
                             exactMatchFound = true;
+                        }
+                        if (exactMatchFound && (i < usernames.size()) && (i < apiKeys.size())
+                                && (StringUtils.isNotEmpty(usernames.get(i))) && (StringUtils.isNotEmpty(apiKeys.get(i)))) {
+                            userInfo = usernames.get(i) + ":" + apiKeys.get(i);
                         }
                         if (exactMatchFound) {
                             break;
@@ -564,9 +568,9 @@ public class DefaultTeamcityClient implements TeamcityClient {
             }
         }
         // Basic Auth only.
-        if (StringUtils.isNotEmpty(userAccessToken)) {
+        if (StringUtils.isNotEmpty(userInfo)) {
             return rest.exchange(thisuri, HttpMethod.GET,
-                    new HttpEntity<>(createHeaders(userAccessToken)),
+                    new HttpEntity<>(createHeaders(userInfo)),
                     String.class);
         } else {
             return rest.exchange(thisuri, HttpMethod.GET, null,
@@ -585,8 +589,10 @@ public class DefaultTeamcityClient implements TeamcityClient {
         return uri.getPort();
     }
 
-    protected HttpHeaders createHeaders(final String userAccessToken) {
-        String authHeader = "Bearer " + userAccessToken;
+    protected HttpHeaders createHeaders(final String userInfo) {
+        byte[] encodedAuth = Base64.encodeBase64(
+                userInfo.getBytes(StandardCharsets.US_ASCII));
+        String authHeader = "Basic " + new String(encodedAuth);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.AUTHORIZATION, authHeader);

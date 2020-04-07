@@ -78,9 +78,6 @@ teamcity.cron=${TEAMCITY_CRON:-0 0/5 * * * *}
 #A comma seperated list of teamcity projectids
 teamcity.projectIds=${TEAMCITY_PROJECT_IDS}
 
-# Teamcity access token
-teamcity.accessToken=${TEAMCITY_ACCESS_TOKEN}
-
 # The folder depth - default is 10
 teamcity.folderDepth=${TEAMCITY_FOLDER_DEPTH:-10}
 
