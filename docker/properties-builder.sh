@@ -87,7 +87,7 @@ teamcity.servers[0]=${TEAMCITY_SERVER}
 #teamcity.environments[0]=[DEV,QA,INT,PERF,PROD]
 #Another option: If using same username/password Teamcity auth - set username/apiKey to use HTTP Basic Auth (blank=no auth)
 teamcity.usernames[0]=${ENTERPRISE_USERNAME}
-teamcity.apiKeys[0]={TEAMCITY_API_KEY}
+teamcity.apiKeys[0]=${TEAMCITY_API_KEY}
 
 # Search criteria enabled via properties (max search criteria = 2)
 teamcity.searchFields[0]= options.jobName
