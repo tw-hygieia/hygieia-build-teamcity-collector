@@ -63,44 +63,67 @@ public class DefaultTeamcityClient implements TeamcityClient {
         LOG.debug("Enter getInstanceProjects");
         Map<TeamcityProject, Map<jobData, Set<BaseModel>>> result = new LinkedHashMap<>();
         for (String projectID : settings.getProjectIds()) {
-            try {
-                String url = joinURL(instanceUrl, new String[]{PROJECT_API_URL_SUFFIX + "/id:" + projectID});
-                ResponseEntity<String> responseEntity = makeRestCall(url);
-                if (responseEntity == null) {
-                    break;
-                }
-                String returnJSON = responseEntity.getBody();
-                if (StringUtils.isEmpty(returnJSON)) {
-                    break;
-                }
-                JSONParser parser = new JSONParser();
-                try {
-                    JSONObject object = (JSONObject) parser.parse(returnJSON);
-                    JSONObject buildTypesObject = (JSONObject) object.get("buildTypes");
-                    JSONArray buildTypes = getJsonArray(buildTypesObject, "buildType");
-                    if (buildTypes.size() == 0) {
-                        break;
-                    }
-                    for (Object buildType : buildTypes) {
-                        JSONObject jsonBuildType = (JSONObject) buildType;
-                        final String buildTypeID = getString(jsonBuildType, "id");
-                        if (isDeploymentBuildType(buildTypeID, instanceUrl)) continue;
-                        final String projectURL = getString(jsonBuildType, "webUrl");
-                        LOG.debug("Process projectName " + buildTypeID + " projectURL " + projectURL);
-                        getProjectDetails(projectID, buildTypeID, buildTypeID, projectURL, instanceUrl, result);
-                    }
-                } catch (ParseException e) {
-                    LOG.error("Parsing jobs details on instance: " + instanceUrl, e);
-                }
-            } catch (RestClientException rce) {
-                LOG.error("client exception loading jobs details", rce);
-                throw rce;
-            } catch (URISyntaxException e1) {
-                LOG.error("wrong syntax url for loading jobs details", e1);
-            }
+            JSONArray buildTypes = new JSONArray();
+            recursivelyFindBuildTypes(instanceUrl, projectID, buildTypes);
+            constructProject(result, buildTypes, projectID, instanceUrl);
         }
         return result;
     }
+
+    private void constructProject(Map<TeamcityProject, Map<jobData, Set<BaseModel>>> result, JSONArray buildTypes, String projectID, String instanceUrl) {
+        for (Object buildType : buildTypes) {
+            JSONObject jsonBuildType = (JSONObject) buildType;
+            final String buildTypeID = getString(jsonBuildType, "id");
+            try {
+                if (isDeploymentBuildType(buildTypeID, instanceUrl)) continue;
+                final String projectURL = getString(jsonBuildType, "webUrl");
+                LOG.debug("Process projectName " + buildTypeID + " projectURL " + projectURL);
+                getProjectDetails(projectID, buildTypeID, buildTypeID, projectURL, instanceUrl, result);
+            } catch (URISyntaxException e) {
+                LOG.error("wrong syntax url for loading jobs details", e);
+            } catch (ParseException e) {
+                LOG.error("Parsing jobs details on instance: " + instanceUrl, e);
+            }
+        }
+    }
+
+
+    private void recursivelyFindBuildTypes(String instanceUrl, String projectID, JSONArray buildTypes) {
+        try {
+            String url = joinURL(instanceUrl, new String[]{PROJECT_API_URL_SUFFIX + "/id:" + projectID});
+            LOG.info("Fetching project details for {}", url);
+            ResponseEntity<String> responseEntity = makeRestCall(url);
+            if (responseEntity == null) {
+                return;
+            }
+            String returnJSON = responseEntity.getBody();
+            if (StringUtils.isEmpty(returnJSON)) {
+                return;
+            }
+            JSONParser parser = new JSONParser();
+            JSONObject object = (JSONObject) parser.parse(returnJSON);
+            JSONObject subProjectsObject = (JSONObject) object.get("projects");
+            JSONArray subProjects = getJsonArray(subProjectsObject, "project");
+            JSONObject buildTypesObject = (JSONObject) object.get("buildTypes");
+            JSONArray buildType = getJsonArray(buildTypesObject, "buildType");
+            if (subProjects.size() == 0 && buildType.size() == 0) {
+                return;
+            }
+            buildTypes.addAll(buildType);
+            if (subProjects.size() > 0) {
+                for (Object subProject : subProjects) {
+                    JSONObject jsonSubProject = (JSONObject) subProject;
+                    final String subProjectID = getString(jsonSubProject, "id");
+                    recursivelyFindBuildTypes(instanceUrl, subProjectID, buildTypes);
+                }
+            }
+        } catch (URISyntaxException e) {
+            LOG.error("wrong syntax url for loading jobs details", e);
+        } catch (ParseException e) {
+            LOG.error("Parsing jobs details on instance: " + instanceUrl, e);
+        }
+    }
+
 
     private Boolean isDeploymentBuildType(String buildTypeID, String instanceUrl) throws URISyntaxException, ParseException {
         try {
@@ -162,7 +185,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
         try {
             String allBuildsUrl = joinURL(instanceUrl, new String[]{BUILD_DETAILS_URL_SUFFIX});
             LOG.info("Fetching builds for project {}", allBuildsUrl);
-            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=project:%s,buildType:%s,count:%d,start:%d", projectID, buildTypeID, buildsCount, startCount)});
+            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=buildType:%s,count:%d,start:%d", buildTypeID, buildsCount, startCount)});
             ResponseEntity<String> responseEntity = makeRestCall(url);
             String returnJSON = responseEntity.getBody();
             if (StringUtils.isEmpty(returnJSON)) {
