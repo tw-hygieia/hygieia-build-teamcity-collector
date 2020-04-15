@@ -1,5 +1,6 @@
 package com.capitalone.dashboard.collector;
 
+import com.capitalone.dashboard.misc.HygieiaException;
 import com.capitalone.dashboard.model.*;
 import com.capitalone.dashboard.util.Supplier;
 import org.apache.commons.codec.binary.Base64;
@@ -44,11 +45,11 @@ public class DefaultTeamcityClient implements TeamcityClient {
     private final RestOperations rest;
     private final TeamcitySettings settings;
 
-    private static final String PROJECT_API_URL_SUFFIX = "app/rest/projects";
+    private static final String PROJECT_API_URL_SUFFIX = "httpAuth/app/rest/projects";
 
-    private static final String BUILD_DETAILS_URL_SUFFIX = "app/rest/builds";
+    private static final String BUILD_DETAILS_URL_SUFFIX = "httpAuth/app/rest/builds";
 
-    private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "app/rest/buildTypes";
+    private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "httpAuth/app/rest/buildTypes";
 
     private static final String DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss";
 
@@ -117,18 +118,18 @@ public class DefaultTeamcityClient implements TeamcityClient {
                     recursivelyFindBuildTypes(instanceUrl, subProjectID, buildTypes);
                 }
             }
-        } catch (URISyntaxException e) {
-            LOG.error("wrong syntax url for loading jobs details", e);
         } catch (ParseException e) {
             LOG.error("Parsing jobs details on instance: " + instanceUrl, e);
+        } catch (HygieiaException e) {
+            LOG.error("Error in calling Teamcity API", e);
         }
     }
 
 
-    private Boolean isDeploymentBuildType(String buildTypeID, String instanceUrl) throws URISyntaxException, ParseException {
+    private Boolean isDeploymentBuildType(String buildTypeID, String instanceUrl) throws ParseException {
         try {
             String buildTypesUrl = joinURL(instanceUrl, new String[]{String.format("%s/id:%s", BUILD_TYPE_DETAILS_URL_SUFFIX, buildTypeID)});
-            LOG.info("Fetching build types details for {}", buildTypesUrl);
+            LOG.info("isDeploymentBuildType fetching build types details for {}", buildTypesUrl);
             ResponseEntity<String> responseEntity = makeRestCall(buildTypesUrl);
             String returnJSON = responseEntity.getBody();
             if (StringUtils.isEmpty(returnJSON)) {
@@ -152,7 +153,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 String propertyValue = jsonProperty.get("value").toString();
                 return propertyValue.equals("DEPLOYMENT");
             }
-        } catch (HttpClientErrorException hce) {
+        } catch (HttpClientErrorException | HygieiaException hce) {
             LOG.error("http client exception loading build details", hce);
         }
         return false;
@@ -211,7 +212,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 teamcityBuild.setBuildStatus(getBuildStatus(jsonBuild));
                 builds.add(teamcityBuild);
             }
-        } catch (HttpClientErrorException hce) {
+        } catch (HttpClientErrorException | HygieiaException hce) {
             LOG.error("http client exception loading build details", hce);
         }
         return builds;
@@ -299,6 +300,8 @@ public class DefaultTeamcityClient implements TeamcityClient {
             LOG.error("Unknown error in getting build details. URL=" + formattedBuildUrl, re);
         } catch (UnsupportedEncodingException unse) {
             LOG.error("Unsupported Encoding Exception in getting build details. URL=" + formattedBuildUrl, unse);
+        } catch (HygieiaException e) {
+            LOG.error("Error in calling Teamcity API", e);
         }
         return null;
     }
@@ -554,74 +557,30 @@ public class DefaultTeamcityClient implements TeamcityClient {
     }
 
     @SuppressWarnings("PMD")
-    protected ResponseEntity<String> makeRestCall(String sUrl) throws URISyntaxException {
+    protected ResponseEntity<String> makeRestCall(String sUrl) throws HygieiaException {
         LOG.debug("Enter makeRestCall " + sUrl);
-        URI thisuri = URI.create(sUrl);
-        String userInfo = thisuri.getUserInfo();
-
-        //get userinfo from URI or settings (in spring properties)
-        if (StringUtils.isEmpty(userInfo)) {
-            List<String> servers = this.settings.getServers();
-            List<String> usernames = this.settings.getUsernames();
-            List<String> apiKeys = this.settings.getApiKeys();
-            if (CollectionUtils.isNotEmpty(servers) && CollectionUtils.isNotEmpty(usernames) && CollectionUtils.isNotEmpty(apiKeys)) {
-                boolean exactMatchFound = false;
-                for (int i = 0; i < servers.size(); i++) {
-                    if ((servers.get(i) != null)) {
-                        String domain1 = getDomain(sUrl);
-                        String domain2 = getDomain(servers.get(i));
-                        if (StringUtils.isNotEmpty(domain1) && StringUtils.isNotEmpty(domain2) && Objects.equals(domain1, domain2)
-                                && getPort(sUrl) == getPort(servers.get(i))) {
-                            exactMatchFound = true;
-                        }
-                        if (exactMatchFound && (i < usernames.size()) && (i < apiKeys.size())
-                                && (StringUtils.isNotEmpty(usernames.get(i))) && (StringUtils.isNotEmpty(apiKeys.get(i)))) {
-                            userInfo = usernames.get(i) + ":" + apiKeys.get(i);
-                        }
-                        if (exactMatchFound) {
-                            break;
-                        }
-                    }
-                }
-                if (!exactMatchFound) {
-                    LOG.warn("Credentials for the following url was not found. This could happen if the domain/subdomain/IP address "
-                            + "in the build url returned by Teamcity and the Teamcity instance url in your Hygieia configuration do not match: "
-                            + "\"" + sUrl + "\"");
-                }
-            }
-        }
-        // Basic Auth only.
-        if (StringUtils.isNotEmpty(userInfo)) {
-            return rest.exchange(thisuri, HttpMethod.GET,
-                    new HttpEntity<>(createHeaders(userInfo)),
-                    String.class);
+        String teamcityAccess = settings.getCredentials();
+        if (StringUtils.isEmpty(teamcityAccess)) {
+            return rest.exchange(sUrl, HttpMethod.GET, null, String.class);
         } else {
-            return rest.exchange(thisuri, HttpMethod.GET, null,
-                    String.class);
+            String teamcityAccessBase64 = new String(Base64.decodeBase64(teamcityAccess));
+            String[] parts = teamcityAccessBase64.split(":");
+            if (parts.length != 2) {
+                throw new HygieiaException("Invalid Teamcity credentials", HygieiaException.INVALID_CONFIGURATION);
+            }
+            return rest.exchange(sUrl, HttpMethod.GET, new HttpEntity<>(createHeaders(parts[0], parts[1])), String.class);
         }
-
     }
 
-    private String getDomain(String url) throws URISyntaxException {
-        URI uri = new URI(url);
-        return uri.getHost();
-    }
-
-    private int getPort(String url) throws URISyntaxException {
-        URI uri = new URI(url);
-        return uri.getPort();
-    }
-
-    protected HttpHeaders createHeaders(final String userInfo) {
-        byte[] encodedAuth = Base64.encodeBase64(
-                userInfo.getBytes(StandardCharsets.US_ASCII));
+    private static HttpHeaders createHeaders(final String userId, final String password) {
+        String auth = userId + ':' + password;
+        byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(StandardCharsets.US_ASCII));
         String authHeader = "Basic " + new String(encodedAuth);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.AUTHORIZATION, authHeader);
         return headers;
     }
-
 
     // join a base url to another path or paths - this will handle trailing or non-trailing /'s
     public static String joinURL(String base, String[] paths) {

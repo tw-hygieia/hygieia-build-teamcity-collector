@@ -15,7 +15,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "Teamcity")
 public class TeamcitySettings {
 
-	
+
     private String cron;
     private boolean saveLog = false;
     private List<String> servers = new ArrayList<>();
@@ -25,6 +25,7 @@ public class TeamcitySettings {
     private List<String> usernames = new ArrayList<>();
     private List<String> apiKeys = new ArrayList<>();
     private String dockerLocalHostIP; //null if not running in docker on http://localhost
+    private String credentials;
     private String projectIds = "";
     @Value("${folderDepth:10}")
     private int folderDepth;
@@ -58,7 +59,7 @@ public class TeamcitySettings {
     public void setServers(List<String> servers) {
         this.servers = servers;
     }
-    
+
     public List<String> getUsernames() {
         return usernames;
     }
@@ -66,7 +67,7 @@ public class TeamcitySettings {
     public void setUsernames(List<String> usernames) {
         this.usernames = usernames;
     }
-    
+
     public List<String> getApiKeys() {
         return apiKeys;
     }
@@ -74,7 +75,7 @@ public class TeamcitySettings {
     public void setApiKeys(List<String> apiKeys) {
         this.apiKeys = apiKeys;
     }
-    
+
     public void setDockerLocalHostIP(String dockerLocalHostIP) {
         this.dockerLocalHostIP = dockerLocalHostIP;
     }
@@ -96,15 +97,15 @@ public class TeamcitySettings {
     }
 
     //Docker NATs the real host localhost to 10.0.2.2 when running in docker
-	//as localhost is stored in the JSON payload from teamcity we need
-	//this hack to fix the addresses
+    //as localhost is stored in the JSON payload from teamcity we need
+    //this hack to fix the addresses
     public String getDockerLocalHostIP() {
-    	
-    		//we have to do this as spring will return NULL if the value is not set vs and empty string
-    	String localHostOverride = "";
-    	if (dockerLocalHostIP != null) {
-    		localHostOverride = dockerLocalHostIP;
-    	}
+
+        //we have to do this as spring will return NULL if the value is not set vs and empty string
+        String localHostOverride = "";
+        if (dockerLocalHostIP != null) {
+            localHostOverride = dockerLocalHostIP;
+        }
         return localHostOverride;
     }
 
@@ -124,11 +125,27 @@ public class TeamcitySettings {
         return folderDepth;
     }
 
-    public int getConnectTimeout() { return connectTimeout; }
+    public String getCredentials() {
+        return credentials;
+    }
 
-    public void setConnectTimeout(int connectTimeout) { this.connectTimeout = connectTimeout; }
+    public void setCredentials(String credentials) {
+        this.credentials = credentials;
+    }
 
-    public int getReadTimeout() { return readTimeout; }
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
 
-    public void setReadTimeout(int readTimeout) { this.readTimeout = readTimeout; }
+    public void setConnectTimeout(int connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
+
+    public int getReadTimeout() {
+        return readTimeout;
+    }
+
+    public void setReadTimeout(int readTimeout) {
+        this.readTimeout = readTimeout;
+    }
 }
