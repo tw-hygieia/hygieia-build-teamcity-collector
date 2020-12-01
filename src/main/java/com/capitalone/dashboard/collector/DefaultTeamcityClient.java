@@ -13,10 +13,7 @@ import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -45,11 +42,11 @@ public class DefaultTeamcityClient implements TeamcityClient {
     private final RestOperations rest;
     private final TeamcitySettings settings;
 
-    private static final String PROJECT_API_URL_SUFFIX = "httpAuth/app/rest/projects";
+    private static final String PROJECT_API_URL_SUFFIX = "app/rest/projects";
 
-    private static final String BUILD_DETAILS_URL_SUFFIX = "httpAuth/app/rest/builds";
+    private static final String BUILD_DETAILS_URL_SUFFIX = "app/rest/builds";
 
-    private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "httpAuth/app/rest/buildTypes";
+    private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "app/rest/buildTypes";
 
     private static final String DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss";
 
@@ -558,10 +555,14 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
     @SuppressWarnings("PMD")
     protected ResponseEntity<String> makeRestCall(String sUrl) throws HygieiaException {
-        LOG.debug("Enter makeRestCall " + sUrl);
+        LOG.info("Enter makeRestCall " + sUrl);
         String teamcityAccess = settings.getCredentials();
         if (StringUtils.isEmpty(teamcityAccess)) {
-            return rest.exchange(sUrl, HttpMethod.GET, null, String.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + settings.getApiKeys().stream().findFirst().orElse(""));
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            HttpEntity<String> entity = new HttpEntity<>("body", headers);
+            return rest.exchange(sUrl, HttpMethod.GET, entity, String.class);
         } else {
             String teamcityAccessBase64 = new String(Base64.decodeBase64(teamcityAccess));
             String[] parts = teamcityAccessBase64.split(":");
