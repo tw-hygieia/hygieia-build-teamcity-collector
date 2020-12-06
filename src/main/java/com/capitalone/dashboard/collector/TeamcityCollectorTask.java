@@ -87,8 +87,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
         udId.add(collector.getId());
         List<TeamcityProject> existingJobs = teamcityJobRepository.findByCollectorIdIn(udId);
         List<TeamcityProject> activeJobs = new ArrayList<>();
-        List<String> activeServers = new ArrayList<>();
-        activeServers.addAll(collector.getBuildServers());
+        List<String> activeServers = new ArrayList<>(collector.getBuildServers());
 
         clean(collector, existingJobs);
 

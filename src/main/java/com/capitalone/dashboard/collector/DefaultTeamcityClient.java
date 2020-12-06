@@ -1,9 +1,7 @@
 package com.capitalone.dashboard.collector;
 
-import com.capitalone.dashboard.misc.HygieiaException;
 import com.capitalone.dashboard.model.*;
 import com.capitalone.dashboard.util.Supplier;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -48,8 +46,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
     private static final String BUILD_DETAILS_URL_SUFFIX = "httpAuth/app/rest/builds";
 
     private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "httpAuth/app/rest/buildTypes";
-
-    private static final String DATE_FORMAT = "yyyy-MM-dd_HH-mm-ss";
 
     @Autowired
     public DefaultTeamcityClient(Supplier<RestOperations> restOperationsSupplier, TeamcitySettings settings) {
@@ -161,7 +157,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                                    Map<TeamcityProject, Map<jobData, Set<BaseModel>>> result) throws URISyntaxException, ParseException {
         LOG.debug("getProjectDetails: projectName " + projectName + " projectURL: " + projectURL);
 
-        Map<jobData, Set<BaseModel>> jobDataMap = new HashMap();
+        Map<jobData, Set<BaseModel>> jobDataMap = new HashMap<>();
 
         TeamcityProject teamcityProject = new TeamcityProject();
         teamcityProject.setInstanceUrl(instanceUrl);
@@ -169,7 +165,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
         teamcityProject.setJobUrl(projectURL);
         teamcityProject.getOptions().put("projectId", projectID);
 
-        Set<BaseModel> builds = getBuildDetailsForTeamcityProject(projectID, buildTypeID, instanceUrl);
+        Set<BaseModel> builds = getBuildDetailsForTeamcityProject(buildTypeID, instanceUrl);
 
         jobDataMap.put(jobData.BUILD, builds);
 
@@ -177,7 +173,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
     }
 
 
-    private Set<BaseModel> getBuildDetailsForTeamcityProjectPaginated(String projectID, String buildTypeID, String instanceUrl, int startCount, int buildsCount) throws URISyntaxException, ParseException {
+    private Set<BaseModel> getBuildDetailsForTeamcityProjectPaginated(String buildTypeID, String instanceUrl, int startCount, int buildsCount) throws ParseException {
         Set<BaseModel> builds = new LinkedHashSet<>();
         try {
             String allBuildsUrl = joinURL(instanceUrl, new String[]{BUILD_DETAILS_URL_SUFFIX});
@@ -215,12 +211,12 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
     }
 
-    private Set<BaseModel> getBuildDetailsForTeamcityProject(String projectID, String buildTypeID, String instanceUrl) throws URISyntaxException, ParseException {
+    private Set<BaseModel> getBuildDetailsForTeamcityProject(String buildTypeID, String instanceUrl) throws ParseException {
         Set<BaseModel> allBuilds = new LinkedHashSet<>();
         int startCount = 0;
         int buildsCount = 100;
         while (true) {
-            Set<BaseModel> builds = getBuildDetailsForTeamcityProjectPaginated(projectID, buildTypeID, instanceUrl, startCount, buildsCount);
+            Set<BaseModel> builds = getBuildDetailsForTeamcityProjectPaginated(buildTypeID, instanceUrl, startCount, buildsCount);
             if (builds.isEmpty()) {
                 break;
             }
@@ -248,7 +244,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 JSONObject buildJson = (JSONObject) parser.parse(resultJSON);
                 String buildStatus = buildJson.get("state").toString();
                 // Ignore jobs that are building
-                if (buildStatus != "finished") {
+                if (!buildStatus.equals("finished")) {
                     Build build = new Build();
 
 
@@ -488,22 +484,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
         return (String) json.get(key);
     }
 
-    private Boolean getBoolean(JSONObject json, String key) {
-        return (Boolean) json.get(key);
-    }
-
-    private long timestamp(JSONObject json, String key) {
-        Object obj = json.get(key);
-        if (obj != null) {
-            try {
-                return new SimpleDateFormat(DATE_FORMAT).parse(obj.toString()).getTime();
-            } catch (java.text.ParseException e) {
-                LOG.warn(obj + " is not in expected format " + DATE_FORMAT + e);
-            }
-        }
-        return 0;
-    }
-
     private String getRevision(JSONObject jsonItem) {
         // Use revision if provided, otherwise use id
         Long revision = (Long) jsonItem.get("revision");
@@ -513,15 +493,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
     private JSONArray getJsonArray(JSONObject json, String key) {
         Object array = json.get(key);
         return array == null ? new JSONArray() : (JSONArray) array;
-    }
-
-    private String firstCulprit(JSONObject buildJson) {
-        JSONArray culprits = getJsonArray(buildJson, "culprits");
-        if (CollectionUtils.isEmpty(culprits)) {
-            return null;
-        }
-        JSONObject culprit = (JSONObject) culprits.get(0);
-        return getFullName(culprit);
     }
 
     private String getFullName(JSONObject author) {
@@ -573,7 +544,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
     // join a base url to another path or paths - this will handle trailing or non-trailing /'s
     public static String joinURL(String base, String[] paths) {
         StringBuilder result = new StringBuilder(base);
-        Arrays.stream(paths).map(path -> path.replaceFirst("^(\\/)+", "")).forEach(p -> {
+        Arrays.stream(paths).map(path -> path.replaceFirst("^(/)+", "")).forEach(p -> {
             if (result.lastIndexOf("/") != result.length() - 1) {
                 result.append('/');
             }
