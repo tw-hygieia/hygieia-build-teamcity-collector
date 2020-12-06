@@ -41,11 +41,11 @@ public class DefaultTeamcityClient implements TeamcityClient {
     private final RestOperations rest;
     private final TeamcitySettings settings;
 
-    private static final String PROJECT_API_URL_SUFFIX = "httpAuth/app/rest/projects";
+    private static final String PROJECT_API_URL_SUFFIX = "app/rest/projects";
 
-    private static final String BUILD_DETAILS_URL_SUFFIX = "httpAuth/app/rest/builds";
+    private static final String BUILD_DETAILS_URL_SUFFIX = "app/rest/builds";
 
-    private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "httpAuth/app/rest/buildTypes";
+    private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "app/rest/buildTypes";
 
     @Autowired
     public DefaultTeamcityClient(Supplier<RestOperations> restOperationsSupplier, TeamcitySettings settings) {
