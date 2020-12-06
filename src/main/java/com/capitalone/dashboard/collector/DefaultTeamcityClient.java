@@ -3,7 +3,6 @@ package com.capitalone.dashboard.collector;
 import com.capitalone.dashboard.misc.HygieiaException;
 import com.capitalone.dashboard.model.*;
 import com.capitalone.dashboard.util.Supplier;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONArray;
@@ -24,7 +23,6 @@ import org.springframework.web.client.RestOperations;
 
 import java.io.UnsupportedEncodingException;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -120,8 +118,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
             }
         } catch (ParseException e) {
             LOG.error("Parsing jobs details on instance: " + instanceUrl, e);
-        } catch (HygieiaException e) {
-            LOG.error("Error in calling Teamcity API", e);
         }
     }
 
@@ -153,7 +149,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 String propertyValue = jsonProperty.get("value").toString();
                 return propertyValue.equals("DEPLOYMENT");
             }
-        } catch (HttpClientErrorException | HygieiaException hce) {
+        } catch (HttpClientErrorException hce) {
             LOG.error("http client exception loading build details", hce);
         }
         return false;
@@ -212,7 +208,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 teamcityBuild.setBuildStatus(getBuildStatus(jsonBuild));
                 builds.add(teamcityBuild);
             }
-        } catch (HttpClientErrorException | HygieiaException hce) {
+        } catch (HttpClientErrorException hce) {
             LOG.error("http client exception loading build details", hce);
         }
         return builds;
@@ -300,8 +296,6 @@ public class DefaultTeamcityClient implements TeamcityClient {
             LOG.error("Unknown error in getting build details. URL=" + formattedBuildUrl, re);
         } catch (UnsupportedEncodingException unse) {
             LOG.error("Unsupported Encoding Exception in getting build details. URL=" + formattedBuildUrl, unse);
-        } catch (HygieiaException e) {
-            LOG.error("Error in calling Teamcity API", e);
         }
         return null;
     }
@@ -557,25 +551,19 @@ public class DefaultTeamcityClient implements TeamcityClient {
     }
 
     @SuppressWarnings("PMD")
-    protected ResponseEntity<String> makeRestCall(String sUrl) throws HygieiaException {
+    protected ResponseEntity<String> makeRestCall(String sUrl) {
         LOG.debug("Enter makeRestCall " + sUrl);
-        String teamcityAccess = settings.getCredentials();
-        if (StringUtils.isEmpty(teamcityAccess)) {
+        List<String> apiKeys = settings.getApiKeys();
+        if (apiKeys.isEmpty()) {
             return rest.exchange(sUrl, HttpMethod.GET, null, String.class);
         } else {
-            String teamcityAccessBase64 = new String(Base64.decodeBase64(teamcityAccess));
-            String[] parts = teamcityAccessBase64.split(":");
-            if (parts.length != 2) {
-                throw new HygieiaException("Invalid Teamcity credentials", HygieiaException.INVALID_CONFIGURATION);
-            }
-            return rest.exchange(sUrl, HttpMethod.GET, new HttpEntity<>(createHeaders(parts[0], parts[1])), String.class);
+            //TODO apiKeys need not be an array
+            return rest.exchange(sUrl, HttpMethod.GET, new HttpEntity<>(createAuthzHeader(apiKeys.get(0))), String.class);
         }
     }
 
-    private static HttpHeaders createHeaders(final String userId, final String password) {
-        String auth = userId + ':' + password;
-        byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(StandardCharsets.US_ASCII));
-        String authHeader = "Basic " + new String(encodedAuth);
+    private static HttpHeaders createAuthzHeader(final String apiToken) {
+        String authHeader = "Bearer " + apiToken;
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.AUTHORIZATION, authHeader);

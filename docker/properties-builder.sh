@@ -81,17 +81,10 @@ teamcity.projectIds=${TEAMCITY_PROJECT_IDS}
 # The folder depth - default is 10
 teamcity.folderDepth=${TEAMCITY_FOLDER_DEPTH:-10}
 
-#64-bit encoded credentials with the pattern username:password
-#on a mac you can create them with -> echo -n 'username:password' | base64
-#reference:  https://www.base64decode.org/
-teamcity.credentials=${TEAMCITY_CREDENTIALS}
-
 #Teamcity server (required) - Can provide multiple
 teamcity.servers[0]=${TEAMCITY_SERVER}
 #teamcity.niceNames[0]=[YourTeamcity]
 #teamcity.environments[0]=[DEV,QA,INT,PERF,PROD]
-#Another option: If using same username/password Teamcity auth - set username/apiKey to use HTTP Basic Auth (blank=no auth)
-teamcity.usernames[0]=${ENTERPRISE_USERNAME}
 teamcity.apiKeys[0]=${TEAMCITY_API_KEY}
 
 # Search criteria enabled via properties (max search criteria = 2)

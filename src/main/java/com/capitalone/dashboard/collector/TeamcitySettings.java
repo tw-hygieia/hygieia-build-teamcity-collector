@@ -22,10 +22,8 @@ public class TeamcitySettings {
     private List<String> niceNames;
     //eg. DEV, QA, PROD etc
     private List<String> environments = new ArrayList<>();
-    private List<String> usernames = new ArrayList<>();
     private List<String> apiKeys = new ArrayList<>();
     private String dockerLocalHostIP; //null if not running in docker on http://localhost
-    private String credentials;
     private String projectIds = "";
     @Value("${folderDepth:10}")
     private int folderDepth;
@@ -58,14 +56,6 @@ public class TeamcitySettings {
 
     public void setServers(List<String> servers) {
         this.servers = servers;
-    }
-
-    public List<String> getUsernames() {
-        return usernames;
-    }
-
-    public void setUsernames(List<String> usernames) {
-        this.usernames = usernames;
     }
 
     public List<String> getApiKeys() {
@@ -123,14 +113,6 @@ public class TeamcitySettings {
 
     public int getFolderDepth() {
         return folderDepth;
-    }
-
-    public String getCredentials() {
-        return credentials;
-    }
-
-    public void setCredentials(String credentials) {
-        this.credentials = credentials;
     }
 
     public int getConnectTimeout() {
