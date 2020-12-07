@@ -6,6 +6,8 @@ import com.capitalone.dashboard.repository.*;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -21,7 +23,7 @@ import java.util.*;
 @Component
 public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
     @SuppressWarnings("PMD.UnusedPrivateField")
-//    private static final Log LOG = LogFactory.getLog(HudsonCollectorTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TeamcityCollectorTask.class);
 
     private final TeamcityCollectorRepository teamcityCollectorRepository;
     private final TeamcityJobRepository teamcityJobRepository;
@@ -103,6 +105,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
                 addNewConfigs(enabledJobs(collector, instanceUrl), dataByJob);
                 log("Finished", start);
             } catch (RestClientException rce) {
+                LOG.error("Fetching project details failed", rce);
                 activeServers.remove(instanceUrl); // since it was a rest exception, we will not delete this job  and wait for
                 // rest exceptions to clear up at a later run.
                 log("Error getting jobs for: " + instanceUrl, start);
