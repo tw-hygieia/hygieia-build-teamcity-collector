@@ -1,6 +1,7 @@
 package com.capitalone.dashboard.collector;
 
 import com.capitalone.dashboard.model.*;
+import com.capitalone.dashboard.repository.CommitRepository;
 import com.capitalone.dashboard.util.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONArray;
@@ -46,11 +47,13 @@ public class DefaultTeamcityClient implements TeamcityClient {
     private static final String BUILD_DETAILS_URL_SUFFIX = "app/rest/builds";
 
     private static final String BUILD_TYPE_DETAILS_URL_SUFFIX = "app/rest/buildTypes";
+    private CommitRepository commitRepository;
 
     @Autowired
-    public DefaultTeamcityClient(Supplier<RestOperations> restOperationsSupplier, TeamcitySettings settings) {
+    public DefaultTeamcityClient(Supplier<RestOperations> restOperationsSupplier, TeamcitySettings settings, CommitRepository commitRepository) {
         this.rest = restOperationsSupplier.get();
         this.settings = settings;
+        this.commitRepository = commitRepository;
     }
 
     @Override
@@ -268,13 +271,13 @@ public class DefaultTeamcityClient implements TeamcityClient {
 
 
                     // Need to handle duplicate changesets bug in Pipeline jobs
-                    Set<String> commitIds = new HashSet<>();
+//                    Set<String> commitIds = new HashSet<>();
                     // This is empty for git
-                    Set<String> revisions = new HashSet<>();
+//                    Set<String> revisions = new HashSet<>();
 
-                    JSONObject changeSet = (JSONObject) buildJson.get("changeSet");
-                    if (changeSet != null) {
-                        addChangeSet(build, changeSet, commitIds, revisions);
+                    JSONObject revisions = (JSONObject) buildJson.get("revisions");
+                    if (revisions != null) {
+                        addRevisions(build, revisions);
                     }
                     return build;
                 }
@@ -294,6 +297,35 @@ public class DefaultTeamcityClient implements TeamcityClient {
             LOG.error("Unsupported Encoding Exception in getting build details. URL=" + formattedBuildUrl, unse);
         }
         return null;
+    }
+
+    private void addRevisions(Build build, JSONObject revisions) {
+
+        //((JSONObject)((JSONArray)((JSONObject)buildJson.get("revisions")).get("revision")).get(0)).get("version")
+        //((JSONObject)((JSONArray)revisions.get("revision")).get(0)).get("version")
+        //((JSONObject)(theRevisions.get("revision")).get(0)).get("version")
+
+
+        Object revision = revisions.get("revision");
+        if (revision == null) {
+            LOG.warn("No revision detected for build " + build.getBuildUrl());
+            return;
+        }
+        JSONArray theRevisions = (JSONArray) revision;
+        if (theRevisions.size() < 1) {
+            LOG.warn("No revision detected for build " + build.getBuildUrl());
+            return;
+        }
+        if (theRevisions.size() > 1) {
+            LOG.warn("Multiple revisions detected for build " + build.getBuildUrl() + ", considering the first");
+        }
+        String theCommitVersion = (String) ((JSONObject)theRevisions.get(0)).get("version");
+        List<Commit> matchedCommits = commitRepository.findByScmRevisionNumber(theCommitVersion);
+        if (matchedCommits.isEmpty()) {
+            LOG.warn("Commit sha " + theCommitVersion + " not found in commit repository, skip adding to pipeline commits this time");
+        } else {
+            build.setSourceChangeSet(Collections.singletonList(matchedCommits.get(0)));
+        }
     }
 
     private String formatBuildUrl(String buildUrl) {

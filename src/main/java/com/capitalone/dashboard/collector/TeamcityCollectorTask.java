@@ -15,6 +15,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClientException;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -33,6 +34,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
     private final TeamcitySettings teamcitySettings;
     private final ComponentRepository dbComponentRepository;
     private final ConfigurationRepository configurationRepository;
+    private PipelineCommitProcessor pipelineCommitProcessor;
 
     @Autowired
     public TeamcityCollectorTask(TaskScheduler taskScheduler,
@@ -41,7 +43,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
                                  BuildRepository buildRepository, CollItemConfigHistoryRepository configRepository, TeamcityClient teamcityClient,
                                  TeamcitySettings teamcitySettings,
                                  ComponentRepository dbComponentRepository,
-                                 ConfigurationRepository configurationRepository) {
+                                 ConfigurationRepository configurationRepository, PipelineCommitProcessor pipelineCommitProcessor) {
         super(taskScheduler, "Teamcity");
         this.teamcityCollectorRepository = teamcityCollectorRepository;
         this.teamcityJobRepository = teamcityJobRepository;
@@ -51,6 +53,7 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
         this.teamcitySettings = teamcitySettings;
         this.dbComponentRepository = dbComponentRepository;
         this.configurationRepository = configurationRepository;
+        this.pipelineCommitProcessor = pipelineCommitProcessor;
     }
 
     @Override
@@ -209,20 +212,31 @@ public class TeamcityCollectorTask extends CollectorTask<TeamcityCollector> {
             Set<BaseModel> buildsSet = jobDataSetMap.get(TeamcityClient.jobData.BUILD);
 
             ArrayList<BaseModel> builds = Lists.newArrayList(nullSafe(buildsSet));
+            List<PipelineCommit> pipelineCommits = new ArrayList<>();
+            String projectId = job.getOptions().get("projectId").toString();
 
             for (BaseModel buildSummary : builds) {
+                Build build = teamcityClient.getBuildDetails(((Build) buildSummary)
+                        .getBuildUrl(), job.getInstanceUrl());
                 if (isNewBuild(job, (Build) buildSummary)) {
-                    Build build = teamcityClient.getBuildDetails(((Build) buildSummary)
-                            .getBuildUrl(), job.getInstanceUrl());
                     job.setLastUpdated(System.currentTimeMillis());
                     teamcityJobRepository.save(job);
                     if (build != null) {
                         build.setCollectorItemId(job.getId());
                         buildRepository.save(build);
-                        count++;
                     }
+                    count++;
+                }
+
+                if (build != null) {
+                    pipelineCommits.addAll(build.getSourceChangeSet()
+                            .stream()
+                            .map(scm -> new PipelineCommit(scm, build.getTimestamp()))
+                            .collect(Collectors.toList()));
                 }
             }
+            pipelineCommitProcessor.processPipelineCommits(pipelineCommits, job.getCollectorId(), projectId);
+
         }
         log("New builds", start, count);
     }
