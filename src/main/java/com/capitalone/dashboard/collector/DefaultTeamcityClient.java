@@ -244,7 +244,7 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 JSONObject buildJson = (JSONObject) parser.parse(resultJSON);
                 String buildStatus = buildJson.get("state").toString();
                 // Ignore jobs that are building
-                if (!buildStatus.equals("finished")) {
+                if (buildStatus.equals("finished")) {
                     Build build = new Build();
 
 
