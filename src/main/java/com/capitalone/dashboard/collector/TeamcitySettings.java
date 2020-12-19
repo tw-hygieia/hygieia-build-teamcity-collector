@@ -34,6 +34,9 @@ public class TeamcitySettings {
     @Value("${teamcity.readTimeout:20000}")
     private int readTimeout;
 
+    @Value("${teamcity.branchesToMonitor:master}")
+    private String branchesToMonitor;
+
     public String getCron() {
         return cron;
     }
@@ -129,5 +132,13 @@ public class TeamcitySettings {
 
     public void setReadTimeout(int readTimeout) {
         this.readTimeout = readTimeout;
+    }
+
+    public String getBranchesToMonitor() {
+        return branchesToMonitor;
+    }
+
+    public void setBranchesToMonitor(String branchesToMonitor) {
+        this.branchesToMonitor = branchesToMonitor;
     }
 }

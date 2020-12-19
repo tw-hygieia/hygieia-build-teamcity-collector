@@ -87,6 +87,10 @@ teamcity.servers[0]=${TEAMCITY_SERVER}
 #teamcity.environments[0]=[DEV,QA,INT,PERF,PROD]
 teamcity.apiKeys[0]=${TEAMCITY_API_KEY}
 
+#Source control branches to monitor
+teamcity.branchesToMonitor=${TEAMCITY_BRANCHES_TO_MONITOR}
+
+
 # Search criteria enabled via properties (max search criteria = 2)
 teamcity.searchFields[0]= options.jobName
 teamcity.searchFields[1]= niceName

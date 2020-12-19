@@ -176,12 +176,23 @@ public class DefaultTeamcityClient implements TeamcityClient {
     }
 
 
-    private Set<BaseModel> getBuildDetailsForTeamcityProjectPaginated(String buildTypeID, String instanceUrl, int startCount, int buildsCount) throws ParseException {
+    private Set<BaseModel> getBuildDetailsForTeamcityProjectPaginated(String buildTypeID,
+                                                                      String instanceUrl, int startCount, int buildsCount) throws ParseException {
+        HashSet<BaseModel> allBuilds = new HashSet<>();
+        String[] branches = settings.getBranchesToMonitor().split(",");
+        for (String branch : branches) {
+            allBuilds.addAll(getBuildDetailsForBranch(buildTypeID, instanceUrl, startCount, buildsCount, branch));
+        }
+        return allBuilds;
+    }
+
+    private Set<BaseModel> getBuildDetailsForBranch(String buildTypeID, String instanceUrl, int startCount, int buildsCount, String branch) throws ParseException {
         Set<BaseModel> builds = new LinkedHashSet<>();
         try {
             String allBuildsUrl = joinURL(instanceUrl, new String[]{BUILD_DETAILS_URL_SUFFIX});
             LOG.info("Fetching builds for project {}", allBuildsUrl);
-            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=buildType:%s,count:%d,start:%d", buildTypeID, buildsCount, startCount)});
+            String url = joinURL(allBuildsUrl, new String[]{String.format("?locator=buildType:%s,branch:%s,count:%d,start:%d", buildTypeID,
+                    URLEncoder.encode(branch, "UTF-8"), buildsCount, startCount)});
             ResponseEntity<String> responseEntity = makeRestCall(url);
             String returnJSON = responseEntity.getBody();
             if (StringUtils.isEmpty(returnJSON)) {
@@ -207,11 +218,10 @@ public class DefaultTeamcityClient implements TeamcityClient {
                 teamcityBuild.setBuildStatus(getBuildStatus(jsonBuild));
                 builds.add(teamcityBuild);
             }
-        } catch (HttpClientErrorException hce) {
+        } catch (HttpClientErrorException | UnsupportedEncodingException hce) {
             LOG.error("http client exception loading build details", hce);
         }
         return builds;
-
     }
 
     private Set<BaseModel> getBuildDetailsForTeamcityProject(String buildTypeID, String instanceUrl) throws ParseException {
